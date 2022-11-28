@@ -1,4 +1,8 @@
 use serenity::async_trait;
+use serenity::client::bridge::gateway::ShardMessenger;
+use serenity::gateway;
+use serenity::model::prelude::Activity;
+use serenity::model::user::CurrentUser;
 use serenity::prelude::*;
 use serenity::model::channel::Message;
 use serenity::framework::standard::macros::{command, group};
@@ -41,6 +45,9 @@ impl Bot {
             if let Err(why) = client.start().await {
                 println!("An error occurred while running the client: {:?}", why);
             }
+
+            // let online_users = self.vrc_api_connection.GetOnlinePlayers();
+            // let message = String::from("Online users: ").push_str(&online_users.to_string());
     }
 }
 
