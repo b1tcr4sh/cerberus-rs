@@ -1,9 +1,10 @@
 use vrchatapi::apis;
 use vrchatapi::apis::configuration::Configuration;
 use vrchatapi::models::*;
+use serenity::prelude::TypeMapKey;
 
 pub struct ApiConnection {
-    config: Configuration
+    pub config: Configuration
 }
 
 impl ApiConnection {
@@ -13,8 +14,19 @@ impl ApiConnection {
 
         ApiConnection { config: config }
     }
+}
 
-    pub fn GetOnlinePlayers(&self) -> u64 {
-        self.GetOnlinePlayers()
+pub struct ConnectionConfig { }
+
+impl TypeMapKey for ConnectionConfig {
+    type Value = Configuration;
+}
+
+pub fn get_online_players(config: Configuration) -> i32 {
+    let result = apis::system_api::get_current_online_users(&config);
+
+    match result {
+        Err(_) => return -1,
+        Ok(online_users) => return online_users
     }
 }
