@@ -1,6 +1,5 @@
 use vrchatapi::apis;
 use vrchatapi::apis::configuration::Configuration;
-use vrchatapi::models::*;
 use serenity::prelude::TypeMapKey;
 
 pub struct ApiConnection {

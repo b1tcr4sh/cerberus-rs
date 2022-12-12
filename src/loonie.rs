@@ -1,17 +1,13 @@
 use serenity::async_trait;
-use serenity::client::bridge::gateway::ShardMessenger;
-use serenity::framework::standard::help_commands::Command;
-use serenity::gateway;
-use serenity::model::prelude::Activity;
-use serenity::model::user::CurrentUser;
+use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 use serenity::model::channel::Message;
-use serenity::framework::standard::macros::{command, group, hook};
-use serenity::framework::standard::{StandardFramework, CommandResult};
-use serenity::builder;
+use serenity::framework::standard::macros::{group, hook};
+use serenity::framework::standard::StandardFramework;
 
-use crate::vrchat::{self, ConnectionConfig};
+use crate::vrchat::ConnectionConfig;
 use crate::vrchat::ApiConnection;
+use crate::commands::{general::*, vrc::*};
 
 #[group]
 #[commands(hi)]
@@ -19,7 +15,7 @@ struct General;
 
 #[hook]
 async fn before() {
-    async fn before(ctx: &Context, msg: &Message, command_name: &str) -> bool {
+    async fn before(_ctx: &Context, msg: &Message, command_name: &str) -> bool {
         println!("Running command '{}' invoked by '{}'", command_name, msg.author.tag());
     
         true
@@ -34,7 +30,26 @@ struct Vrchat;
 struct Handler;
 
 #[async_trait]
-impl EventHandler for Handler {}
+impl EventHandler for Handler {
+    async fn ready(&self, ctx: Context, ready: Ready) {
+        println!("{} is connected!", ready.user.name);
+
+        for guild in ready.guilds {
+            if !guild.unavailable {
+                if let Some(guild) = ctx.cache.guild(guild.id) {
+                    if let Some(channel) = &guild.channel_id_from_name(&ctx.cache, "general") {
+                        println!("Greeting server {0}", guild.name);
+                        if let Err(why) = channel.say(&ctx.http, "Sup Bitches!").await {
+                            eprintln!("{:?}", why);
+                        }
+                    }
+                }
+            } else {
+                println!("{0} is unavailable", guild.id);
+            }
+        }
+    }
+}
 
 pub struct Bot {
     discord_token: String,
@@ -70,29 +85,4 @@ impl Bot {
                 println!("An error occurred while running the client: {:?}", why);
             }
         }
-}
-
-
-
-#[command]
-async fn hi(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "Sup, bitch").await?;
-
-    Ok(())
-}
-
-#[command]
-async fn active(ctx: &Context, msg: &Message) -> CommandResult {
-    let lock = ctx.data.read().await;
-    let config = lock.get::<ConnectionConfig>().expect("Expected ConnectionConfig in TypeMap").clone();
-
-    let online_users = vrchat::get_online_players(config);
-    let mut message: String = String::from("Currently active VRChat users: ");
-    message.push_str(&online_users.to_string());
-
-    if let Err(_) = ctx.cache.guild_channel(msg.channel_id).unwrap().send_message(ctx, |m| m.content(message)).await {
-        msg.reply(ctx, "Something broke, idk lmao.  Ping Vivid I guess").await;
-    }
-
-    Ok(())
 }
