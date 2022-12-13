@@ -1,17 +1,25 @@
 use serenity::async_trait;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
-use serenity::model::channel::Message;
+use serenity::model::channel::{Message, Reaction, ReactionType};
 use serenity::framework::standard::macros::{group, hook};
 use serenity::framework::standard::StandardFramework;
 
 use crate::vrchat::ConnectionConfig;
 use crate::vrchat::ApiConnection;
-use crate::commands::{general::*, vrc::*};
+use crate::commands::{general::*, vrc::*, util::*};
+use crate::reaction_handler::*;
 
 #[group]
 #[commands(hi)]
 struct General;
+#[group]
+#[prefixes("vrc")]
+#[commands(active)]
+struct Vrchat;
+#[group]
+#[commands(reaction)]
+struct Util;
 
 #[hook]
 async fn before() {
@@ -21,12 +29,6 @@ async fn before() {
         true
     }
 }
-
-#[group]
-#[prefixes("vrc")]
-#[commands(active)]
-struct Vrchat;
-
 struct Handler;
 
 #[async_trait]
@@ -48,6 +50,19 @@ impl EventHandler for Handler {
                 println!("{0} is unavailable", guild.id);
             }
         }
+    }
+    async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
+        let lock = ctx.data.read().await;
+        let Some(handler) = lock.get::<ReactionHandler>() else {
+            eprint!("Failed to fetch ReactionHander from data lock");
+            return;
+        };
+
+        // Get Custom from reaction.emoji for EmojiId
+
+        
+        // handler.get(&reaction.message_id, emoji);
+        
     }
 }
 
@@ -79,6 +94,7 @@ impl Bot {
                 let mut data = client.data.write().await;
     
                 data.insert::<ConnectionConfig>(self.vrc_api_connection.config.clone());
+                data.insert::<ReactionHandler>(ReactionHandler::new());
             }
     
             if let Err(why) = &mut client.start().await {

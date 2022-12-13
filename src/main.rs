@@ -1,6 +1,7 @@
 mod loonie;
 mod vrchat;
 mod commands;
+mod reaction_handler;
 
 use std::env::var;
 use dotenv::dotenv;
