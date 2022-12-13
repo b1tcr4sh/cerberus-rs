@@ -46,7 +46,7 @@ pub struct ReactionRole {
 }
 
 impl ReactionRole {
-    pub async fn assign_role(&self, ctx: Context, member: &mut Member, channel: ChannelId) {
+    pub async fn assign_role(&self, ctx: &Context, member: &mut Member, channel: &ChannelId) {
         if let Err(why) = member.add_role(&ctx, self.role_id).await {
             channel.say(&ctx, "Hey, adding the role failed for some reason, ping an admin? Idk").await.expect("Failed to send error message to channel!");
         }

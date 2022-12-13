@@ -52,7 +52,10 @@ impl EventHandler for Handler {
         }
     }
     async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
-        if (reaction.member.unwrap().user.expect("Failed to get user from reactions").id == ctx.cache.current_user_id()) {
+        let partial_member = reaction.member.expect("Couldn't get member from reaction... ?");
+        let user = &partial_member.user.expect("Couldn't get user from reaction");
+
+        if (user.id == ctx.cache.current_user_id()) {
             return;
         }
 
@@ -66,16 +69,8 @@ impl EventHandler for Handler {
 
         
         // handler.get(&reaction.message_id, emoji);
-        let Some(guild_id) = &reaction.guild_id else {
+        let Some(guild_id) = reaction.guild_id else {
             eprintln!("Could not get guild id from reaction... ?");
-            return;
-        };
-        let Some(guild_member) = &reaction.member else {
-            eprintln!("Could not get member from reaction... ?");
-            return;
-        };
-        let Some(user) = &guild_member.user else {
-            eprintln!("Could not get user from cache... ?");
             return;
         };
         let Some(member) = &ctx.cache.member(guild_id, user.id) else {
