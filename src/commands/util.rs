@@ -4,7 +4,7 @@ use serenity::framework::standard::{CommandResult, Args, CommandError};
 use serenity::prelude::Context;
 use serenity::model::id::{MessageId, RoleId, EmojiId};
 
-use crate::reaction_handler::ReactionHandler;
+use crate::reaction_handler::{ReactionHandler, self};
 
 #[command]
 #[num_args(3)]
@@ -34,11 +34,19 @@ async fn reaction(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     };
 
     let lock = ctx.data.read().await;
-    let Some(reactions) = lock.get::<ReactionHandler>() else {
+    let Some(reactions_handler) = lock.get::<ReactionHandler>() else {
         return CommandResult::Err(CommandError::from("Failed to fetch ReactionHander from data lock"));
     };
 
-    // reactions.register(MessageId::from(message_id), RoleId::from(role_id), );
+    let Some(guild_id) = msg.guild_id else {
+        return CommandResult::Err(CommandError::from("Failed to get guild id from message"));
+    };
+
+    let Some(roles) = ctx.cache.guild_roles(guild_id) else {
+        return CommandResult::Err(CommandError::from("Failed to get roles from cache"));
+    };
+
+    // reactions_handler.register(MessageId::from(message_id), RoleId::from(role_id), );
     // Parse emoji from message string
 
     println!("{0}, {1}, {2}", message_id, role_id, emoji);

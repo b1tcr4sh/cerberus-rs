@@ -1,5 +1,6 @@
 use serenity::model::id::{MessageId, RoleId, EmojiId};
-use serenity::prelude::TypeMapKey;
+use serenity::model::prelude::{Member, ChannelId};
+use serenity::prelude::{TypeMapKey, Context};
 
 pub struct ReactionHandler {
     pub reaction_events: Vec<ReactionRole>
@@ -45,7 +46,9 @@ pub struct ReactionRole {
 }
 
 impl ReactionRole {
-    pub fn assign_role(&self, ) {
-
+    pub async fn assign_role(&self, ctx: Context, member: &mut Member, channel: ChannelId) {
+        if let Err(why) = member.add_role(&ctx, self.role_id).await {
+            channel.say(&ctx, "Hey, adding the role failed for some reason, ping an admin? Idk").await.expect("Failed to send error message to channel!");
+        }
     }
 }

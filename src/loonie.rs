@@ -24,7 +24,7 @@ struct Util;
 #[hook]
 async fn before() {
     async fn before(_ctx: &Context, msg: &Message, command_name: &str) -> bool {
-        println!("Running command '{}' invoked by '{}'", command_name, msg.author.tag());
+        println!("Running command '{0}' invoked by '{1}'", command_name, msg.author.tag());
     
         true
     }
@@ -52,6 +52,10 @@ impl EventHandler for Handler {
         }
     }
     async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
+        if (reaction.member.unwrap().user.expect("Failed to get user from reactions").id == ctx.cache.current_user_id()) {
+            return;
+        }
+
         let lock = ctx.data.read().await;
         let Some(handler) = lock.get::<ReactionHandler>() else {
             eprint!("Failed to fetch ReactionHander from data lock");
@@ -62,7 +66,25 @@ impl EventHandler for Handler {
 
         
         // handler.get(&reaction.message_id, emoji);
+        let Some(guild_id) = &reaction.guild_id else {
+            eprintln!("Could not get guild id from reaction... ?");
+            return;
+        };
+        let Some(guild_member) = &reaction.member else {
+            eprintln!("Could not get member from reaction... ?");
+            return;
+        };
+        let Some(user) = &guild_member.user else {
+            eprintln!("Could not get user from cache... ?");
+            return;
+        };
+        let Some(member) = &ctx.cache.member(guild_id, user.id) else {
+            eprintln!("Could not get member from cache... ?");
+            return;
+        };
         
+        
+
     }
 }
 
@@ -80,7 +102,8 @@ impl Bot {
         let framework = StandardFramework::new()
             .configure(|c| c.prefix("~"))
             .group(&GENERAL_GROUP)
-            .group(&VRCHAT_GROUP);
+            .group(&VRCHAT_GROUP)
+            .group(&UTIL_GROUP);
     
         
         let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
