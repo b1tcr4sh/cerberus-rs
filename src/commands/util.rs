@@ -8,7 +8,7 @@ use crate::reaction_handler::{ReactionHandler, self};
 
 #[command]
 #[num_args(3)]
-#[usage("reaction [Message ID]<string> [Role ID]<string> [Emoji]<emoji>")]
+#[usage("reaction [Message ID]<string> [Role ID]<string> [Emoji Name]<string>")]
 async fn reaction(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut args_vec: Vec<String> = Vec::new(); 
     

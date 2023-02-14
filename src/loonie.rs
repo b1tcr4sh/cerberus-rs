@@ -1,7 +1,7 @@
 use serenity::async_trait;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
-use serenity::model::channel::{Message, Reaction, ReactionType};
+use serenity::model::channel::{Message, Reaction};
 use serenity::framework::standard::macros::{group, hook};
 use serenity::framework::standard::StandardFramework;
 
@@ -53,7 +53,8 @@ impl EventHandler for Handler {
     }
     async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
         let partial_member = reaction.member.expect("Couldn't get member from reaction... ?");
-        let user = &partial_member.user.expect("Couldn't get user from reaction");
+        let user = partial_member.user.expect("Couldn't get user from reaction");
+        let guild_id = &reaction.guild_id.expect("Couldn't get guild id from cache... ?");
 
         if (user.id == ctx.cache.current_user_id()) {
             return;
@@ -78,7 +79,16 @@ impl EventHandler for Handler {
             return;
         };
         
-        
+        // Get reaction listener
+        if let Some(listener) = handler.get(&reaction.message_id, &reaction.emoji) {
+            let mut member = ctx.http.get_member(guild_id.0, user.id.0).await.expect("Couldn't get member from guild.. ?");
+
+            member.add_role(&ctx, listener.role_id).await.expect("Couldn't add role to user... ?");
+
+        } else {
+            return;
+        }
+
 
     }
 }

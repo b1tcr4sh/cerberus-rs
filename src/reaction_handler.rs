@@ -1,5 +1,5 @@
 use serenity::model::id::{MessageId, RoleId, EmojiId};
-use serenity::model::prelude::{Member, ChannelId};
+use serenity::model::prelude::{Member, ChannelId, ReactionType};
 use serenity::prelude::{TypeMapKey, Context};
 
 pub struct ReactionHandler {
@@ -11,22 +11,22 @@ impl ReactionHandler {
             reaction_events: Vec::new()
         }
     }
-    pub fn register(&mut self, message: MessageId, role: RoleId, emoji: EmojiId) {
+    pub fn register(&mut self, message: MessageId, role: RoleId, emoji: ReactionType) {
         let listener = ReactionRole {
             message_id: message,
             role_id: role,
-            emoji_id: emoji
+            emoji: emoji
         };
 
         self.reaction_events.push(listener);
     }
-    pub fn get(&self, message: &MessageId, emoji: &EmojiId) -> Option<&ReactionRole> {
+    pub fn get(&self, message: &MessageId, emoji: &ReactionType) -> Option<&ReactionRole> {
         if self.reaction_events.is_empty() {
             return None;
         }
 
         for reaction in self.reaction_events.iter() {
-            if &reaction.message_id == message && &reaction.emoji_id == emoji {
+            if &reaction.message_id == message && reaction.emoji == emoji.to_owned() {
                 return Some(&reaction);
             }
         }
@@ -42,7 +42,7 @@ impl TypeMapKey for ReactionHandler {
 pub struct ReactionRole {
     pub message_id: MessageId,
     pub role_id: RoleId,
-    pub emoji_id: EmojiId
+    pub emoji: ReactionType
 }
 
 impl ReactionRole {
