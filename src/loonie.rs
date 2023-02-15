@@ -56,7 +56,7 @@ impl EventHandler for Handler {
         let user = partial_member.user.expect("Couldn't get user from reaction");
         let guild_id = &reaction.guild_id.expect("Couldn't get guild id from cache... ?");
 
-        if (user.id == ctx.cache.current_user_id()) {
+        if user.id == ctx.cache.current_user_id() {
             return;
         }
 
@@ -66,10 +66,15 @@ impl EventHandler for Handler {
             return;
         };
 
-        // Get Custom from reaction.emoji for EmojiId
+        // Check if there is a creation request waiting for a reaction
+        if handler.active_creation_listener != None {
+            let Some(listener) = handler.active_creation_listener;
 
+            if &reaction.message_id == &listener {
+                handler.send_paylod(reaction.emoji);
+            }
+        }
         
-        // handler.get(&reaction.message_id, emoji);
         let Some(guild_id) = reaction.guild_id else {
             eprintln!("Could not get guild id from reaction... ?");
             return;

@@ -1,20 +1,24 @@
-use serenity::model::id::{MessageId, RoleId, EmojiId};
+use serenity::model::id::{MessageId, RoleId};
 use serenity::model::prelude::{Member, ChannelId, ReactionType};
 use serenity::prelude::{TypeMapKey, Context};
 
 pub struct ReactionHandler {
-    pub reaction_events: Vec<ReactionRole>
+    pub reaction_events: Vec<ReactionRole>,
+    pub active_creation_listener: Option<MessageId>,
+    reaction_paylod: Option<ReactionType>
 }
 impl ReactionHandler {
     pub fn new()  -> ReactionHandler {
         ReactionHandler {
-            reaction_events: Vec::new()
+            reaction_events: Vec::new(),
+            active_creation_listener: None,
+            reaction_paylod: None
         }
     }
-    pub fn register(&mut self, message: MessageId, role: RoleId, emoji: ReactionType) {
+    pub fn register(&mut self, message_id: u64, role_id: u64, emoji: ReactionType) {
         let listener = ReactionRole {
-            message_id: message,
-            role_id: role,
+            message_id: MessageId(message_id),
+            role_id: RoleId(role_id),
             emoji: emoji
         };
 
@@ -26,12 +30,18 @@ impl ReactionHandler {
         }
 
         for reaction in self.reaction_events.iter() {
-            if &reaction.message_id == message && reaction.emoji == emoji.to_owned() {
+            if reaction.message_id.0 == message.0 && reaction.emoji == emoji.to_owned() {
                 return Some(&reaction);
             }
         }
 
         return None;
+    }
+    pub fn send_paylod(&self, emoji: ReactionType) {
+        self.reaction_paylod = Some(emoji);
+    }
+    pub fn paylod(&self) -> Option<ReactionType> {
+        self.reaction_paylod
     }
 }
 

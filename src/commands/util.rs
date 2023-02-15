@@ -1,10 +1,11 @@
 use serenity::framework::standard::macros::command;
 use serenity::model::channel::Message;
-use serenity::framework::standard::{CommandResult, Args, CommandError};
+use serenity::framework::standard::{CommandResult, Args};
 use serenity::prelude::Context;
-use serenity::model::id::{MessageId, RoleId, EmojiId};
+use std::time;
+use serenity::json::prelude::from_str;
 
-use crate::reaction_handler::{ReactionHandler, self};
+use crate::reaction_handler::{ReactionHandler};
 
 #[command]
 #[num_args(3)]
@@ -12,44 +13,72 @@ use crate::reaction_handler::{ReactionHandler, self};
 async fn reaction(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut args_vec: Vec<String> = Vec::new(); 
     
-    for arg in args.iter::<String>() {
-        if let Ok(param) = arg {
-            args_vec.push(param);
-        } else {
-            msg.reply(ctx, "Bitch something's wrong with the command arguments, try again?").await.unwrap();
-        }
-    }
+    let Some(message_id) = args.current() else {
+        msg.reply(&ctx, "Missing message ID ~~bitch~~");
+        return;
+    };
+    let Some(role_id) = args.advance().current() else {
+        msg.reply(&ctx, "Missing role ID ~~bitch~~");
+        return;
+    };
+    let Some(emoji_name) = args.advance().current() else {
+        msg.reply(&ctx, "Missing emoji name ~~bitch~~");
+        return;
+    };
 
-    let Some(message_id) = args_vec.get(0) else {
-        msg.reply(ctx, "Bitch something's wrong with the command arguments, try again?").await.unwrap();
-        return CommandResult::Err(CommandError::from("Command args were None"));
-    };
-    let Some(role_id) = args_vec.get(1) else {
-        msg.reply(ctx, "Bitch something's wrong with the command arguments, try again?").await.unwrap();
-        return CommandResult::Err(CommandError::from("Command args were None"));
-    };
-    let Some(emoji) = args_vec.get(2) else {
-        msg.reply(ctx, "Bitch something's wrong with the command arguments, try again?").await.unwrap();
-        return CommandResult::Err(CommandError::from("Command args were None"));
-    };
 
     let lock = ctx.data.read().await;
-    let Some(reactions_handler) = lock.get::<ReactionHandler>() else {
-        return CommandResult::Err(CommandError::from("Failed to fetch ReactionHander from data lock"));
+    let reactions_handler = lock.get::<ReactionHandler>().expect("Failed to get ReactionHandler... ?");
+    let guild_id = msg.guild_id.expect("Failed to get guild id from message");
+    let roles = ctx.cache.guild_roles(guild_id).expect("Failed to get roles from cache");
+
+    let lock_guard = &ctx.data.read().await;
+    let reaction_handler = lock_guard.get::<ReactionHandler>().expect("Reaction manager from r/w lock");
+
+    let reaction_request = &msg.reply(&ctx, "React to this message with the emoji you wish to use").await.unwrap();
+    reaction_handler.active_creation_listener = Some(reaction_request.id);
+
+    let timeout = 0;
+    while reaction_handler.paylod() == None {
+        if timeout > 10 {
+            reaction_request.edit(&ctx, |m| m.content("You took too long, sorry (10 secs timeout)"));
+
+            reaction_handler.active_creation_listener = None;
+            return;
+        }
+
+        std::thread::sleep(time::Duration::from_secs(1));
+        timeout += 1;
+    }
+
+    let Some(reaction) = reaction_handler.paylod() else {
+        msg.reply(&ctx, "Something went wrong, I don't have a fucking clue.");
+        return;
     };
 
-    let Some(guild_id) = msg.guild_id else {
-        return CommandResult::Err(CommandError::from("Failed to get guild id from message"));
+
+    // let timeout = 0;
+    // while reaction_handler.active_creation_listener == None {
+    //     if timeout >= 20 {
+    //         reaction_request.edit(&ctx, |m| m.content("You took too long bitch.  I timed out (10 seconds)"));
+    //         return;
+    //     }
+        
+    //     sleep(time::Duration::from_secs(1));
+    //     timeout += 1;
+    // }
+
+    let Ok(message_id_u64) = from_str::<u64>(message_id) else {
+        &msg.reply(&ctx, "Your first arg is wrong bitch");
+        return;
+    };
+    let Ok(role_id_u64) = from_str::<u64>(role_id) else {
+        &msg.reply(&ctx, "Your second arg is wrong bitch");
+        return;
     };
 
-    let Some(roles) = ctx.cache.guild_roles(guild_id) else {
-        return CommandResult::Err(CommandError::from("Failed to get roles from cache"));
-    };
+    reactions_handler.register(message_id_u64, role_id_u64, reaction.to_owned());
 
-    // reactions_handler.register(MessageId::from(message_id), RoleId::from(role_id), );
-    // Parse emoji from message string
-
-    println!("{0}, {1}, {2}", message_id, role_id, emoji);
 
     Ok(())
 }
