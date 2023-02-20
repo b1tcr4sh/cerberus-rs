@@ -15,11 +15,11 @@ async fn reaction(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     
     let Some(message_id) = args.current() else {
         msg.reply(ctx, "Missing message ID ~~bitch~~");
-        return;
+        return Ok(());
     };
     let Some(role_id) = args.advance().current() else {
         msg.reply(ctx, "Missing role ID ~~bitch~~");
-        return;
+        return Ok(());
     };
 
 
@@ -32,7 +32,7 @@ async fn reaction(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     let reaction_handler = lock_guard.get::<ReactionHandler>().expect("Reaction manager from r/w lock");
 
     let reaction_request = msg.reply(ctx, "React to this message with the emoji you wish to use").await.unwrap();
-    reaction_handler.active_creation_listener = Some(reaction_request.id);
+    reaction_handler.active_creation_listener = Some(&reaction_request.id);
 
     let timeout = 0;
     while reaction_handler.paylod() == None {
@@ -40,7 +40,7 @@ async fn reaction(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             reaction_request.edit(ctx, |m| m.content("You took too long, sorry (10 secs timeout)"));
 
             reaction_handler.active_creation_listener = None;
-            return;
+            return Ok(());
         }
 
         std::thread::sleep(time::Duration::from_secs(1));
@@ -49,20 +49,20 @@ async fn reaction(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
     let Some(reaction) = reaction_handler.paylod() else {
         msg.reply(ctx, "Something went wrong, I don't have a fucking clue.");
-        return;
+        return Ok(());
     };
 
 
     let Ok(message_id_u64) = from_str::<u64>(message_id) else {
         msg.reply(ctx, "Your first arg is wrong bitch");
-        return;
+        return Ok(());
     };
     let Ok(role_id_u64) = from_str::<u64>(role_id) else {
         msg.reply(ctx, "Your second arg is wrong bitch");
-        return;
+        return Ok(());
     };
 
-    reactions_handler.register(message_id_u64, role_id_u64, reaction.to_owned());
+    &reactions_handler.register(message_id_u64, role_id_u64, reaction.to_owned());
 
 
     Ok(())

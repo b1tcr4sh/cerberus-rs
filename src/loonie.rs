@@ -124,10 +124,12 @@ impl Bot {
             .expect("Error creating client");
 
             {
-                let mut data = client.data.write().await;
+                let data = &client.data;
+                let mut data_writer = data.write().await;
     
-                data.insert::<ConnectionConfig>(self.vrc_api_connection.config.clone());
-                data.insert::<ReactionHandler>(ReactionHandler::new());
+                data_writer.insert::<ConnectionConfig>(self.vrc_api_connection.config.clone());
+                let handler = ReactionHandler::new::<'static>();
+                data_writer.insert::<ReactionHandler>(&handler);
             }
     
             if let Err(why) = &mut client.start().await {
